@@ -754,12 +754,12 @@ chmod +x /home/radio/radio.sh
 
 sed -i 's/^#alsactl_opts/alsactl_opts/' /etc/conf.d/alsa
 
-cat << "EOF" > /etc/local.d/radio.start
+#cat << "EOF" > /etc/local.d/radio.start
 #!/bin/ash
-doas -u radio ash -c 'QUERY_STRING="url=https://live1.sr.se/p4sth-aac-320&output=jack" /home/radio/radio.sh'
-EOF
-chmod +x /etc/local.d/radio.start
-rc-update add local
+#doas -u radio ash -c 'QUERY_STRING="url=https://live1.sr.se/p4sth-aac-320&output=jack" /home/radio/radio.sh'
+#EOF
+#chmod +x /etc/local.d/radio.start
+#rc-update add local
 
 cat << "EOF" | base64 -d | zcat > /home/radio/favicon.ico
 H4sIAAAAAAACA+1bbUxU2Rm+um7T2jSxTXaTNtuG1NQwszCMMzAMyMeIIAjC8iEqCAgKKoryzaqg
