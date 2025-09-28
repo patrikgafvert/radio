@@ -154,6 +154,12 @@ cat << "EOF" > /home/radio/index.html
       margin-bottom: 70px;
     }
 
+    mark {
+      background-color: #ffc107;
+      color: #121212;
+      padding: 0 2px;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -338,12 +344,29 @@ cat << "EOF" > /home/radio/index.html
 </div>
 
 <script>
-  function setStorage(key, value) {
-      localStorage.setItem(key, value);
+  function setCookie(key, value, days = 7) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+      const expires = "expires=" + d.toUTCString();
+      document.cookie = `$${key}=$${encodeURIComponent(value)};$${expires};path=/;SameSite=Lax`;
   }
-  function getStorage(key) {
-      return localStorage.getItem(key);
+
+  function getCookie(key) {
+      const name = key + "=";
+      const decodedCookie = decodeURIComponent(document.cookie);
+      const ca = decodedCookie.split(';');
+      for(let i = 0; i <ca.length; i++) {
+          let c = ca[i];
+          while (c.charAt(0) === ' ') {
+              c = c.substring(1);
+          }
+          if (c.indexOf(name) === 0) {
+              return c.substring(name.length, c.length);
+          }
+      }
+      return "";
   }
+
 
   function clearSelectedRows() {
       const currentlySelected = document.querySelector('tr.selected-row');
@@ -353,7 +376,7 @@ cat << "EOF" > /home/radio/index.html
   }
 
   function highlightSelectedRowFromStorage() {
-      const storedChannelUrl = getStorage('selectedChannelUrl');
+      const storedChannelUrl = getCookie('selectedChannelUrl');
       if (!storedChannelUrl) return;
 
       const clickableRows = document.querySelectorAll('tr[data-url]');
@@ -364,7 +387,7 @@ cat << "EOF" > /home/radio/index.html
       });
   }
 
-  let currentOutput = getStorage('selectedOutput') || 'jack';
+  let currentOutput = getCookie('selectedOutput') || 'jack';
 
   function updateButtonStyles() {
       document.querySelectorAll('.output-buttons button').forEach(btn => {
@@ -421,9 +444,9 @@ cat << "EOF" > /home/radio/index.html
       clickedRow.classList.add('selected-row');
 
       await sendCgiRequest(channelUrl, currentOutput);
-      setStorage('selectedChannelUrl', channelUrl);
-      setStorage('selectedOutput', currentOutput);
-      setStorage('lastCustomUrl', channelUrl);
+      setCookie('selectedChannelUrl', channelUrl);
+      setCookie('selectedOutput', currentOutput);
+      setCookie('lastCustomUrl', channelUrl);
       customUrlInput.value = channelUrl;
       updateButtonStyles();
   }
@@ -435,9 +458,9 @@ cat << "EOF" > /home/radio/index.html
       if (customUrl) {
           clearSelectedRows();
           await sendCgiRequest(customUrl, currentOutput);
-          setStorage('selectedChannelUrl', customUrl);
-          setStorage('selectedOutput', currentOutput);
-          setStorage('lastCustomUrl', customUrl);
+          setCookie('selectedChannelUrl', customUrl);
+          setCookie('selectedOutput', currentOutput);
+          setCookie('lastCustomUrl', customUrl);
           updateButtonStyles();
       } else {
           document.getElementById('log-message').textContent = 'Vänligen ange en URL i fältet för egen URL.';
@@ -449,10 +472,10 @@ cat << "EOF" > /home/radio/index.html
       clearSelectedRows();
       await sendCgiRequest("", currentOutput);
       document.getElementById('customUrlInput').value = "";
-      setStorage('selectedChannelUrl', "");
-      setStorage('lastCustomUrl', "");
+      setCookie('selectedChannelUrl', "");
+      setCookie('lastCustomUrl', "");
       currentOutput = 'off';
-      setStorage('selectedOutput', currentOutput);
+      setCookie('selectedOutput', currentOutput);
       updateButtonStyles();
   }
 
@@ -524,7 +547,7 @@ cat << "EOF" > /home/radio/index.html
           highlightSelectedRowFromStorage();
           updateButtonStyles();
 
-          const lastCustomUrl = getStorage('lastCustomUrl');
+          const lastCustomUrl = getCookie('lastCustomUrl');
           if (lastCustomUrl) {
               document.getElementById('customUrlInput').value = lastCustomUrl;
           }
@@ -566,7 +589,6 @@ cat << "EOF" > /home/radio/index.html
           let rowMatches = false;
 
           cells.forEach(cell => {
-              // Ta bort ev. <mark>-taggar från tidigare sökning
               const originalText = cell.textContent || '';
               cell.innerHTML = originalText;
 
@@ -578,7 +600,6 @@ cat << "EOF" > /home/radio/index.html
           });
 
           if (!searchTerm) {
-              // Visa allt och rensa highlighting
               row.style.display = '';
               groupHasVisibleRows = true;
           } else if (rowMatches) {
@@ -620,7 +641,7 @@ cat << "EOF" > /home/radio/index.html
           }
 
           currentOutput = newOutput;
-          setStorage('selectedOutput', currentOutput);
+          setCookie('selectedOutput', currentOutput);
           updateButtonStyles();
           document.getElementById('log-message').textContent = `Utgång inställd till $${newOutput.charAt(0).toUpperCase() + newOutput.slice(1)}.`;
       }
