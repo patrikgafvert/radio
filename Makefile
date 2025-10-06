@@ -180,10 +180,12 @@ cat << "EOF" > /home/radio/index.html
     }
 
     tr:nth-child(even) { background-color: #2a2a2a; }
-    tr:nth-child(odd) { background-color: #1a1a1a; }
+    tr:nth-child(odd) { background-color: #1a1a1a;
+    }
 
     tr.clickable-row { cursor: pointer; transition: background-color 0.2s ease; }
-    tr.clickable-row:hover { background-color: #333333; }
+    tr.clickable-row:hover { background-color: #333333;
+    }
 
     tr.selected-row {
       background-color: #004d40;
@@ -228,9 +230,11 @@ cat << "EOF" > /home/radio/index.html
       gap: 10px;
     }
 
-    #log.loading { color: #ffffff; }
+    #log.loading { color: #ffffff;
+    }
     #log.success { color: #aaffee; }
-    #log.error { color: #ff8888; }
+    #log.error { color: #ff8888;
+    }
 
     #searchInput {
       margin-top: 20px;
@@ -287,7 +291,9 @@ cat << "EOF" > /home/radio/index.html
       display: flex;
     }
 
-    .output-buttons button {
+    .output-buttons button,
+    #connectBluetoothButton, 
+    #disconnectBluetoothButton {
       padding: 10px 15px;
       font-size: 1em;
       background-color: #0056b3;
@@ -298,7 +304,9 @@ cat << "EOF" > /home/radio/index.html
       transition: background-color 0.2s ease;
     }
 
-    .output-buttons button:hover {
+    .output-buttons button:hover,
+    #connectBluetoothButton:hover, 
+    #disconnectBluetoothButton:hover {
       background-color: #007bff;
     }
 
@@ -341,10 +349,13 @@ cat << "EOF" > /home/radio/index.html
         <button id="outputBluetooth" aria-label="Välj ljudutgång till Bluetooth">Output: Bluetooth</button>
         <button id="outputOff" aria-label="Stäng av ljud">Stäng av</button>
     </div>
+    <button id="connectBluetoothButton" aria-label="Anslut till Bluetooth">Anslut Blåtand</button>
+    <button id="disconnectBluetoothButton" aria-label="Koppla bort från Bluetooth">Koppla bort Blåtand</button>
 </div>
 
 <script>
-  function setCookie(key, value, days = 7) {
+  function
+  setCookie(key, value, days = 7) {
       const d = new Date();
       d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
       const expires = "expires=" + d.toUTCString();
@@ -367,7 +378,6 @@ cat << "EOF" > /home/radio/index.html
       return "";
   }
 
-
   function clearSelectedRows() {
       const currentlySelected = document.querySelector('tr.selected-row');
       if (currentlySelected) {
@@ -378,7 +388,6 @@ cat << "EOF" > /home/radio/index.html
   function highlightSelectedRowFromStorage() {
       const storedChannelUrl = getCookie('selectedChannelUrl');
       if (!storedChannelUrl) return;
-
       const clickableRows = document.querySelectorAll('tr[data-url]');
       clickableRows.forEach(row => {
           if (row.dataset.url === storedChannelUrl) {
@@ -393,7 +402,6 @@ cat << "EOF" > /home/radio/index.html
       document.querySelectorAll('.output-buttons button').forEach(btn => {
           btn.classList.remove('active', 'active-off');
       });
-
       if (currentOutput !== 'off') {
           const btn = document.getElementById('output' + currentOutput.charAt(0).toUpperCase() + currentOutput.slice(1));
           if (btn) btn.classList.add('active');
@@ -403,15 +411,17 @@ cat << "EOF" > /home/radio/index.html
       }
   }
 
-  async function sendCgiRequest(channelUrl, outputDevice) {
+  async function sendCgiRequest(channelUrl, outputDevice, command = null) {
       const logElement = document.getElementById('log-message');
-      let fullUrl = `$${pre_url}url=$${encodeURIComponent(channelUrl)}&output=$${outputDevice}`;
+      let fullUrl = `$${pre_url}`;
 
-      if (!channelUrl) {
-          fullUrl = `$${pre_url}url=&output=$${outputDevice}`;
-          logElement.textContent = `Skickar begäran för att stänga av... URL: $${fullUrl}`;
+      if (command) {
+          fullUrl += `command=$${command}`;
+      } else if (channelUrl || outputDevice) { 
+          fullUrl += `url=$${encodeURIComponent(channelUrl || '')}&output=$${outputDevice}`;
       } else {
-          logElement.textContent = `Skickar begäran... URL: $${fullUrl}`;
+          // Förhindrar meningslöst CGI-anrop om ingen info skickas
+          return;
       }
 
       document.getElementById('log').className = 'loading';
@@ -421,13 +431,18 @@ cat << "EOF" > /home/radio/index.html
 
       try {
           const response = await fetch(fullUrl, { signal: controller.signal });
+          // Systemfel: HTTP-statusfel loggas
           if (!response.ok) throw new Error(`HTTP-fel: $${response.status}`);
-
+          
           const responseText = await response.text();
-          logElement.textContent = `Kanal/Utgång ändrad! Svar: $${responseText}`;
+          // ASH scriptets output visas
+          logElement.textContent = responseText.trim() || 'Kommando skickat.';
           document.getElementById('log').className = 'success';
+
       } catch (error) {
-          logElement.textContent = error.name === 'AbortError' ? 'Tidsgräns överskreds.' : `Fel: $${error.message}`;
+          // Systemfel: Timeout/Nätverksfel loggas
+          logElement.textContent = error.name === 'AbortError' ?
+          `Tidsgräns överskreds. CGI-anrop: $${fullUrl}` : `Fel: $${error.message}. CGI-anrop: $${fullUrl}`;
           document.getElementById('log').className = 'error';
       } finally {
           clearTimeout(timeoutId);
@@ -445,7 +460,6 @@ cat << "EOF" > /home/radio/index.html
 
       await sendCgiRequest(channelUrl, currentOutput);
       setCookie('selectedChannelUrl', channelUrl);
-      setCookie('selectedOutput', currentOutput);
       setCookie('lastCustomUrl', channelUrl);
       customUrlInput.value = channelUrl;
       updateButtonStyles();
@@ -463,18 +477,51 @@ cat << "EOF" > /home/radio/index.html
           setCookie('lastCustomUrl', customUrl);
           updateButtonStyles();
       } else {
-          document.getElementById('log-message').textContent = 'Vänligen ange en URL i fältet för egen URL.';
-          document.getElementById('log').className = 'error';
+          // Tyst return utan loggning
+          return; 
       }
   }
 
   async function handleOffClick() {
       clearSelectedRows();
-      await sendCgiRequest("", currentOutput);
+      await sendCgiRequest("", currentOutput); 
       document.getElementById('customUrlInput').value = "";
       setCookie('selectedChannelUrl', "");
       setCookie('lastCustomUrl', "");
       currentOutput = 'off';
+      setCookie('selectedOutput', currentOutput);
+      updateButtonStyles();
+  }
+  
+  async function handleConnectBluetooth() {
+      if (currentOutput !== 'bluetooth') {
+          // Tyst return utan loggning
+          return; 
+      }
+      await sendCgiRequest(null, null, 'bluetooth_connect');
+  }
+
+  async function handleDisconnectBluetooth() {
+      await sendCgiRequest(null, null, 'bluetooth_disconnect');
+  }
+
+  async function handleOutputSwitch(event) {
+      const clickedButton = event.target;
+      if (clickedButton.tagName !== 'BUTTON' || clickedButton.id === 'outputOff') return;
+
+      let newOutput = '';
+      switch (clickedButton.id) {
+          case 'outputJack': newOutput = 'jack'; break;
+          case 'outputHDMI': newOutput = 'hdmi'; break;
+          case 'outputBluetooth': newOutput = 'bluetooth'; break;
+          default: return;
+      }
+
+      const currentChannelUrl = getCookie('selectedChannelUrl') || "";
+      
+      await sendCgiRequest(currentChannelUrl, newOutput);
+      
+      currentOutput = newOutput;
       setCookie('selectedOutput', currentOutput);
       updateButtonStyles();
   }
@@ -484,12 +531,10 @@ cat << "EOF" > /home/radio/index.html
           const response = await fetch(jsonUrl);
           if (!response.ok) throw new Error(`HTTP-fel: $${response.status}`);
           const data = await response.json();
-
           data.sort((a, b) => {
               const groupCompare = a.group.localeCompare(b.group);
               return groupCompare !== 0 ? groupCompare : a.name.localeCompare(b.name);
           });
-
           const table = document.createElement('table');
           const thead = document.createElement('thead');
           const tbody = document.createElement('tbody');
@@ -501,17 +546,18 @@ cat << "EOF" > /home/radio/index.html
               th.textContent = key === 'logo_url' ? '' :
                   key === 'name' ? 'Kanalnamn' :
                   key === 'genre' ? 'Genre' : 'Beskrivning';
+         
               headerRow.appendChild(th);
           });
           thead.appendChild(headerRow);
           table.appendChild(thead);
-
           let currentGroup = null;
           data.forEach(item => {
               if (item.group && item.group !== currentGroup) {
                   const groupHeaderRow = document.createElement('tr');
                   groupHeaderRow.classList.add('group-header');
                   const groupHeaderCell = document.createElement('td');
+              
                   groupHeaderCell.textContent = item.group;
                   groupHeaderCell.colSpan = columns.length;
                   groupHeaderRow.appendChild(groupHeaderCell);
@@ -519,6 +565,7 @@ cat << "EOF" > /home/radio/index.html
                   currentGroup = item.group;
               }
 
+    
               const row = document.createElement('tr');
               row.classList.add('clickable-row');
               row.dataset.url = item.url;
@@ -526,6 +573,7 @@ cat << "EOF" > /home/radio/index.html
 
               columns.forEach(key => {
                   const td = document.createElement('td');
+     
                   if (key === 'logo_url') {
                       const img = document.createElement('img');
                       img.src = item[key] || '';
@@ -533,7 +581,8 @@ cat << "EOF" > /home/radio/index.html
                       img.classList.add('logo');
                       td.appendChild(img);
                   } else {
-                      td.textContent = item[key] || '';
+                      td.textContent = item[key] ||
+                      '';
                   }
                   row.appendChild(td);
               });
@@ -572,13 +621,13 @@ cat << "EOF" > /home/radio/index.html
 
       let currentGroupHeader = null;
       let groupHasVisibleRows = false;
-
       rows.forEach(row => {
           if (row.classList.contains('group-header')) {
               if (currentGroupHeader && !groupHasVisibleRows) {
                   currentGroupHeader.style.display = 'none';
               } else if (currentGroupHeader) {
                   currentGroupHeader.style.display = '';
+          
               }
               currentGroupHeader = row;
               groupHasVisibleRows = false;
@@ -589,12 +638,14 @@ cat << "EOF" > /home/radio/index.html
           let rowMatches = false;
 
           cells.forEach(cell => {
+  
               const originalText = cell.textContent || '';
               cell.innerHTML = originalText;
 
               if (searchTerm && originalText.toLowerCase().includes(searchTerm)) {
                   rowMatches = true;
                   const regex = new RegExp(`($${searchTerm})`, 'gi');
+      
                   cell.innerHTML = originalText.replace(regex, '<mark>$$1</mark>');
               }
           });
@@ -625,30 +676,16 @@ cat << "EOF" > /home/radio/index.html
           location.reload();
       }
   });
-
   const pre_url = "/radio.sh?";
   loadAndBuildTable('radio_channels.json', 'table-container');
 
-  document.querySelector('.output-buttons').addEventListener('click', function(event) {
-      const clickedButton = event.target;
-      if (clickedButton.tagName === 'BUTTON' && clickedButton.id !== 'outputOff') {
-          let newOutput = '';
-          switch (clickedButton.id) {
-              case 'outputJack': newOutput = 'jack'; break;
-              case 'outputHDMI': newOutput = 'hdmi'; break;
-              case 'outputBluetooth': newOutput = 'bluetooth'; break;
-              default: return;
-          }
-
-          currentOutput = newOutput;
-          setCookie('selectedOutput', currentOutput);
-          updateButtonStyles();
-          document.getElementById('log-message').textContent = `Utgång inställd till $${newOutput.charAt(0).toUpperCase() + newOutput.slice(1)}.`;
-      }
-  });
+  document.querySelector('.output-buttons').addEventListener('click', handleOutputSwitch);
 
   document.getElementById('outputOff').addEventListener('click', handleOffClick);
   document.getElementById('playCustomUrlButton').addEventListener('click', handlePlayCustomUrl);
+  
+  document.getElementById('connectBluetoothButton').addEventListener('click', handleConnectBluetooth);
+  document.getElementById('disconnectBluetoothButton').addEventListener('click', handleDisconnectBluetooth);
 </script>
 </body>
 </html>
@@ -694,7 +731,6 @@ echo "HTTP/1.1 200 OK"
 echo "Content-Type: text/plain; charset=UTF-8"
 echo ""
 
-# Funktion för att avkoda URL-strängar
 urldecode() {
     local url_encoded="$${1//+/ }"
     printf '%b' "$${url_encoded//%/\\x}"
@@ -707,6 +743,7 @@ fi
 
 CHANNEL_URL=""
 OUTPUT_DEVICE=""
+COMMAND=""
 
 OLDIFS="$$IFS"
 IFS='&'
@@ -716,14 +753,39 @@ IFS="$$OLDIFS"
 for param in "$$@"; do
     case "$$param" in
         url=*)
-            # Avkoda URL:en här
             CHANNEL_URL=$$(urldecode "$${param#url=}")
             ;;
         output=*)
             OUTPUT_DEVICE="$${param#output=}"
             ;;
+        command=*)
+            COMMAND="$${param#command=}"
+            ;;
     esac
 done
+
+if [ ! -z "$$COMMAND" ]; then
+    if [ "$$COMMAND" == "bluetooth_connect" ]; then
+        bluetoothctl connect 78:A1:68:A5:EB:CF > /dev/null 2>&1
+        if [ $$? -eq 0 ]; then
+            echo "BT Anslutning lyckades."
+        else
+            echo "Fel vid BT Anslutning."
+        fi
+        exit 0
+    elif [ "$$COMMAND" == "bluetooth_disconnect" ]; then
+        bluetoothctl disconnect 78:A1:68:A5:EB:CF > /dev/null 2>&1
+        if [ $$? -eq 0 ]; then
+            echo "BT Frånkoppling lyckades."
+        else
+            echo "Fel vid BT Frånkoppling."
+        fi
+        exit 0
+    else
+        echo "Okänt kommando: $$COMMAND"
+        exit 1
+    fi
+fi
 
 if [ -z "$$OUTPUT_DEVICE" ]; then
     echo "Fel: 'output' parameter saknas eller är tom."
@@ -731,20 +793,21 @@ if [ -z "$$OUTPUT_DEVICE" ]; then
 fi
 
 if [ -z "$$CHANNEL_URL" ]; then
-    echo "Ingen kanal vald. Stänger av strömmen/radion."
+    echo "Stänger av strömmen/radion."
     pkill -KILL ffmpeg
 else
-    echo "Kanal: $$CHANNEL_URL"
-    echo "Utgång: $$OUTPUT_DEVICE"
     if [ "$$OUTPUT_DEVICE" == "jack" ]; then
       pkill -KILL ffmpeg
       nohup ffmpeg -loglevel quiet -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default:CARD=Headphones > /dev/null 2>&1 &
+      echo "Startade Jack."
     elif [ "$$OUTPUT_DEVICE" == "hdmi" ]; then
       pkill -KILL ffmpeg
       nohup ffmpeg -loglevel quiet -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default:CARD=b1 > /dev/null 2>&1 &
+      echo "Startade HDMI."
     elif [ "$$OUTPUT_DEVICE" == "bluetooth" ]; then
       pkill -KILL ffmpeg
       nohup ffmpeg -loglevel quiet -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa bluealsa > /dev/null 2>&1 &
+      echo "Startade Bluetooth-strömning."
     fi
 fi
 
