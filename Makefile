@@ -66,6 +66,8 @@ permit nopass keepenv root
 EOF
 
 sed -i 's/#\(PermitRootLogin \).*/\1yes/' /etc/ssh/sshd_config
+sed -i 's/#\(ClientAliveInterval \).*/\160/' /etc/ssh/sshd_config
+sed -i 's/#\(ClientAliveCountMax \).*/\12/' /etc/ssh/sshd_config
 
 cat << "EOF" >> /etc/modules
 snd-bcm2835
