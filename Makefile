@@ -413,7 +413,8 @@ cat << "EOF" > /home/radio/index.html
       }
   }
 
-  async function sendCgiRequest(channelUrl, outputDevice, command = null) {
+  // NYTT: Lagt till channelName som valfri parameter
+  async function sendCgiRequest(channelUrl, outputDevice, command = null, channelName = null) {
       const logElement = document.getElementById('log-message');
       let fullUrl = `$${pre_url}`;
 
@@ -421,6 +422,9 @@ cat << "EOF" > /home/radio/index.html
           fullUrl += `command=$${command}`;
       } else if (channelUrl || outputDevice) { 
           fullUrl += `url=$${encodeURIComponent(channelUrl || '')}&output=$${outputDevice}`;
+          if (channelName) { // NYTT: Lägg till kanalnamn i anropet om det finns
+              fullUrl += `&name=$${encodeURIComponent(channelName)}`;
+          }
       } else {
           // Förhindrar meningslöst CGI-anrop om ingen info skickas
           return;
@@ -452,29 +456,34 @@ cat << "EOF" > /home/radio/index.html
       return fullUrl;
   }
 
+  // NYTT: Hämtar channelName från datat-attribut och skickar det till CGI och sparar i cookie
   async function handleRowClick(event) {
       const clickedRow = event.currentTarget;
       const channelUrl = clickedRow.dataset.url;
+      const channelName = clickedRow.dataset.name;
       const customUrlInput = document.getElementById('customUrlInput');
 
       clearSelectedRows();
       clickedRow.classList.add('selected-row');
 
-      await sendCgiRequest(channelUrl, currentOutput);
+      await sendCgiRequest(channelUrl, currentOutput, null, channelName);
       setCookie('selectedChannelUrl', channelUrl);
+      setCookie('selectedChannelName', channelName); // NYTT: Lagra kanalnamnet
       setCookie('lastCustomUrl', channelUrl);
       customUrlInput.value = channelUrl;
       updateButtonStyles();
   }
 
+  // NYTT: Skickar "Egen URL" som namn för anpassade URL:er
   async function handlePlayCustomUrl() {
       const customUrlInput = document.getElementById('customUrlInput');
       const customUrl = customUrlInput.value.trim();
 
       if (customUrl) {
           clearSelectedRows();
-          await sendCgiRequest(customUrl, currentOutput);
+          await sendCgiRequest(customUrl, currentOutput, null, "Egen URL");
           setCookie('selectedChannelUrl', customUrl);
+          setCookie('selectedChannelName', "Egen URL"); // NYTT: Lagra namn för anpassad URL
           setCookie('selectedOutput', currentOutput);
           setCookie('lastCustomUrl', customUrl);
           updateButtonStyles();
@@ -484,11 +493,13 @@ cat << "EOF" > /home/radio/index.html
       }
   }
 
+  // NYTT: Rensar även selectedChannelName cookie
   async function handleOffClick() {
       clearSelectedRows();
       await sendCgiRequest("", currentOutput); 
       document.getElementById('customUrlInput').value = "";
       setCookie('selectedChannelUrl', "");
+      setCookie('selectedChannelName', ""); // NYTT: Rensa lagrat namn
       setCookie('lastCustomUrl', "");
       currentOutput = 'off';
       setCookie('selectedOutput', currentOutput);
@@ -507,6 +518,7 @@ cat << "EOF" > /home/radio/index.html
       await sendCgiRequest(null, null, 'bluetooth_disconnect');
   }
 
+  // NYTT: Hämtar och skickar med det senast valda kanalnamnet vid output-byte
   async function handleOutputSwitch(event) {
       const clickedButton = event.target;
       if (clickedButton.tagName !== 'BUTTON' || clickedButton.id === 'outputOff') return;
@@ -520,8 +532,9 @@ cat << "EOF" > /home/radio/index.html
       }
 
       const currentChannelUrl = getCookie('selectedChannelUrl') || "";
+      const currentChannelName = getCookie('selectedChannelName') || ""; // NYTT: Hämta lagrat namn
       
-      await sendCgiRequest(currentChannelUrl, newOutput);
+      await sendCgiRequest(currentChannelUrl, newOutput, null, currentChannelName); // NYTT: Skicka med namn
       
       currentOutput = newOutput;
       setCookie('selectedOutput', currentOutput);
@@ -571,6 +584,7 @@ cat << "EOF" > /home/radio/index.html
               const row = document.createElement('tr');
               row.classList.add('clickable-row');
               row.dataset.url = item.url;
+              row.dataset.name = item.name; // NYTT: Spara kanalnamn i datat-attributet
               row.addEventListener('click', handleRowClick);
 
               columns.forEach(key => {
@@ -746,6 +760,7 @@ fi
 CHANNEL_URL=""
 OUTPUT_DEVICE=""
 COMMAND=""
+CHANNEL_NAME="" # Ny variabel för kanalnamnet
 
 OLDIFS="$$IFS"
 IFS='&'
@@ -762,6 +777,9 @@ for param in "$$@"; do
             ;;
         command=*)
             COMMAND="$${param#command=}"
+            ;;
+        name=*) # Nytt fall för att fånga kanalnamnet
+            CHANNEL_NAME=$$(urldecode "$${param#name=}")
             ;;
     esac
 done
@@ -798,18 +816,23 @@ if [ -z "$$CHANNEL_URL" ]; then
     echo "Stänger av strömmen/radion."
     pkill -KILL ffmpeg
 else
+    # Använd kanalnamnet om det finns för mer informativ utskrift
+    if [ -z "$$CHANNEL_NAME" ]; then
+        CHANNEL_NAME="Okänd kanal"
+    fi
+
     if [ "$$OUTPUT_DEVICE" == "jack" ]; then
       pkill -KILL ffmpeg
       nohup ffmpeg -loglevel quiet -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default:CARD=Headphones > /dev/null 2>&1 &
-      echo "Startade Jack."
+      echo "Startade $$CHANNEL_NAME på Jack." # Uppdaterad utskrift
     elif [ "$$OUTPUT_DEVICE" == "hdmi" ]; then
       pkill -KILL ffmpeg
       nohup ffmpeg -loglevel quiet -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default:CARD=b1 > /dev/null 2>&1 &
-      echo "Startade HDMI."
+      echo "Startade $$CHANNEL_NAME på HDMI." # Uppdaterad utskrift
     elif [ "$$OUTPUT_DEVICE" == "bluetooth" ]; then
       pkill -KILL ffmpeg
       nohup ffmpeg -loglevel quiet -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa bluealsa > /dev/null 2>&1 &
-      echo "Startade Bluetooth-strömning."
+      echo "Startade $$CHANNEL_NAME på Bluetooth-strömning." # Uppdaterad utskrift
     fi
 fi
 
