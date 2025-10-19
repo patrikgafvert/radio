@@ -346,9 +346,9 @@ cat << "EOF" > /home/radio/index.html
 <div id="log">
     <div id="log-message"></div>
     <div class="output-buttons">
-        <button id="outputJack" aria-label="Välj ljudutgång till Jack">Output: Jack</button>
-        <button id="outputHDMI" aria-label="Välj ljudutgång till HDMI">Output: HDMI</button>
-        <button id="outputBluetooth" aria-label="Välj ljudutgång till Bluetooth">Output: Bluetooth</button>
+        <button id="outputJack" aria-label="Välj ljudutgång till Jack">Jack</button>
+        <button id="outputHDMI" aria-label="Välj ljudutgång till HDMI">HDMI</button>
+        <button id="outputBluetooth" aria-label="Välj ljudutgång till Bluetooth">Bluetooth</button>
         <button id="outputOff" aria-label="Stäng av ljud">Stäng av</button>
     </div>
     <button id="connectBluetoothButton" aria-label="Anslut till Bluetooth">Anslut Blåtand</button>
