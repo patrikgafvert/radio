@@ -2,7 +2,7 @@
 SHELL:=$(shell which bash)
 ROOT_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 DOWNLOADCMD=curl -s -O -L -k
-ALPINE_VER=3.22
+ALPINE_VER=3.23
 ALPINE_FILE=alpine-rpi-$(ALPINE_VER).1-aarch64.tar.gz
 ALPINE_URL=https://dl-cdn.alpinelinux.org/alpine/v$(ALPINE_VER)/releases/aarch64/$(ALPINE_FILE)
 ALPINE_DIR=$(ROOT_DIR)alpine-$(ALPINE_VER)/
@@ -11,8 +11,8 @@ DISCS:=$(shell lsblk -O -J | jq -r '[.blockdevices[] | select(.type=="disk" and 
 
 define REPO
 /media/mmcblk0p1/apks
-https://ftp.sunet.se/mirror/alpinelinux.org/v3.22/main
-https://ftp.sunet.se/mirror/alpinelinux.org/v3.22/community
+https://ftp.sunet.se/mirror/alpinelinux.org/v$(ALPINE_VER)/main
+https://ftp.sunet.se/mirror/alpinelinux.org/v$(ALPINE_VER)/community
 endef
 
 define AUTOSCRIPT
@@ -930,8 +930,8 @@ hostname radio
 TIMEZONEOPTS="Europe/Stockholm"
 PROXYOPTS="none"
 APKREPOSOPTS="/media/mmcblk0p1/apks
-https://ftp.sunet.se/mirror/alpinelinux.org/v3.22/main
-https://ftp.sunet.se/mirror/alpinelinux.org/v3.22/community
+https://ftp.sunet.se/mirror/alpinelinux.org/v$(ALPINE_VER)/main
+https://ftp.sunet.se/mirror/alpinelinux.org/v$(ALPINE_VER)/community
 "
 USEROPTS="-a -u -g audio,input,video,netdev radio"
 SSHDOPTS="openssh"
@@ -954,7 +954,7 @@ make_img:
 	dd if=/dev/zero of=radio.img bs=1M count=1024
 	echo -e "n\np\n1\n\n\nt\nc\na\nw\n" | fdisk radio.img
 	mformat -v RADIO -i radio.img@@$$((512*2048)) -F ::
-	mcopy -v -i radio.img@@$$((512*2048)) -s alpine-3.22/* ::
+	mcopy -v -i radio.img@@$$((512*2048)) -s alpine-$(ALPINE_VER)/* ::
 	7z a radio radio.img
 
 make_ovl:
