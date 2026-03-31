@@ -149,17 +149,119 @@ cat << "EOF" > /home/radio/index.html
   <meta charset="UTF-8">
   <title>Radio</title>
   <style>
+    :root {
+      --bg-primary: #121212;
+      --bg-secondary: #1a1a1a;
+      --bg-tertiary: #1e1e1e;
+      --bg-quaternary: #2a2a2a;
+      --bg-hover: #333333;
+      --bg-group: #3a3a3a;
+      --bg-selected: #004d40;
+      --border-color: #444;
+      --border-dark: #555;
+      --text-primary: #e0e0e0;
+      --text-secondary: #aaa;
+      --text-highlight: #f0f0f0;
+      --accent-blue: #0056b3;
+      --accent-blue-hover: #007bff;
+      --accent-red: #c82333;
+      --accent-red-hover: #dc3545;
+      --accent-yellow: #ffc107;
+      --accent-green: #aaffee;
+      --spacing: 10px;
+      --border-radius: 5px;
+      --transition: 0.2s ease;
+    }
+
     body {
-      background-color: #121212;
-      color: #e0e0e0;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
       font-family: Arial, sans-serif;
       margin-bottom: 70px;
     }
 
     mark {
-      background-color: #ffc107;
-      color: #121212;
+      background-color: var(--accent-yellow);
+      color: var(--bg-primary);
       padding: 0 2px;
+    }
+
+    #searchInput {
+      margin-top: 20px;
+      padding: var(--spacing);
+      font-size: 1em;
+      width: 100%;
+      box-sizing: border-box;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+    }
+
+    #customUrlContainer {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing);
+      margin-top: 20px;
+    }
+
+    #customUrlInput {
+      flex: 1 1 auto;
+      max-width: 90%;
+      padding: var(--spacing);
+      font-size: 1em;
+      box-sizing: border-box;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+    }
+
+    #playCustomUrlButton,
+    .output-buttons button,
+    .bluetooth-btn {
+      padding: var(--spacing) 15px;
+      font-size: 1em;
+      background-color: var(--accent-blue);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: background-color var(--transition);
+    }
+
+    #playCustomUrlButton {
+      margin-left: auto;
+      flex-shrink: 0;
+      white-space: nowrap;
+      height: 100%;
+    }
+
+    #playCustomUrlButton:hover,
+    .output-buttons button:hover,
+    .bluetooth-btn:hover {
+      background-color: var(--accent-blue-hover);
+    }
+
+    #outputOff {
+      background-color: var(--accent-red);
+    }
+
+    #outputOff:hover {
+      background-color: var(--accent-red-hover);
+    }
+
+    .output-buttons button.active {
+      background-color: var(--accent-blue-hover);
+    }
+
+    .output-buttons button.active-off {
+      background-color: var(--accent-red-hover);
+    }
+
+    .output-buttons {
+      gap: var(--spacing);
+      display: flex;
     }
 
     table {
@@ -171,46 +273,55 @@ cat << "EOF" > /home/radio/index.html
     }
 
     th, td {
-      border: 1px solid #444;
-      padding: 4px 4px;
+      border: 1px solid var(--border-color);
+      padding: 4px;
       text-align: left;
       vertical-align: middle;
     }
 
     th {
-      background-color: #1e1e1e;
+      background-color: var(--bg-tertiary);
     }
 
-    tr:nth-child(even) { background-color: #2a2a2a; }
-    tr:nth-child(odd) { background-color: #1a1a1a;
+    tr:nth-child(even) {
+      background-color: var(--bg-quaternary);
     }
 
-    tr.clickable-row { cursor: pointer; transition: background-color 0.2s ease; }
-    tr.clickable-row:hover { background-color: #333333;
+    tr:nth-child(odd) {
+      background-color: var(--bg-secondary);
+    }
+
+    tr.clickable-row {
+      cursor: pointer;
+      transition: background-color var(--transition);
+    }
+
+    tr.clickable-row:hover {
+      background-color: var(--bg-hover);
     }
 
     tr.selected-row {
-      background-color: #004d40;
-      color: #e0e0e0;
+      background-color: var(--bg-selected);
+      color: var(--text-primary);
       font-weight: bold;
+    }
+
+    tr.group-header td {
+      background-color: var(--bg-group);
+      color: var(--text-highlight);
+      font-weight: bold;
+      text-align: center;
+      padding: 10px;
+      border-bottom: 2px solid var(--border-dark);
+      cursor: default;
     }
 
     td img.logo {
       width: 40px;
       height: 24px;
       object-fit: contain;
-      border-radius: 5px;
+      border-radius: var(--border-radius);
       display: block;
-    }
-
-    tr.group-header td {
-      background-color: #3a3a3a;
-      color: #f0f0f0;
-      font-weight: bold;
-      text-align: center;
-      padding: 10px;
-      border-bottom: 2px solid #555;
-      cursor: default;
     }
 
     #log {
@@ -218,112 +329,30 @@ cat << "EOF" > /home/radio/index.html
       bottom: 0;
       left: 0;
       width: 100%;
-      background-color: #2a2a2a;
-      border-top: 1px solid #444;
-      padding: 10px;
+      background-color: var(--bg-quaternary);
+      border-top: 1px solid var(--border-color);
+      padding: var(--spacing);
       font-size: 1em;
-      color: #aaa;
+      color: var(--text-secondary);
       box-sizing: border-box;
       z-index: 1000;
       display: flex;
       align-items: center;
       justify-content: flex-start;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: var(--spacing);
     }
 
-    #log.loading { color: #ffffff;
-    }
-    #log.success { color: #aaffee; }
-    #log.error { color: #ff8888;
-    }
-
-    #searchInput {
-      margin-top: 20px;
-      font-size: 1em;
-      padding: 10px;
-      width: 100%;
-      box-sizing: border-box;
-      background-color: #1e1e1e;
-      color: #e0e0e0;
-      border: 1px solid #444;
-      border-radius: 5px;
-    }
-
-    #customUrlContainer {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    #customUrlInput {
-      flex: 1 1 auto;
-      max-width: 90%;
-      padding: 10px;
-      font-size: 1em;
-      box-sizing: border-box;
-      background-color: #1e1e1e;
-      color: #e0e0e0;
-      border: 1px solid #444;
-      border-radius: 5px;
-    }
-
-    #playCustomUrlButton {
-      margin-left: auto;
-      flex-shrink: 0;
-      white-space: nowrap;
-      padding: 10px 15px;
-      font-size: 1em;
-      background-color: #0056b3;
+    #log.loading {
       color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      height: 100%;
     }
 
-    #playCustomUrlButton:hover {
-      background-color: #007bff;
+    #log.success {
+      color: var(--accent-green);
     }
 
-    .output-buttons {
-      gap: 10px;
-      display: flex;
-    }
-
-    .output-buttons button,
-    .bluetooth-btn {
-      padding: 10px 15px;
-      font-size: 1em;
-      background-color: #0056b3;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-
-    .output-buttons button:hover,
-    .bluetooth-btn:hover {
-      background-color: #007bff;
-    }
-
-    .output-buttons button.active {
-      background-color: #007bff;
-    }
-
-    #outputOff {
-      background-color: #c82333;
-    }
-
-    #outputOff:hover {
-      background-color: #dc3545;
-    }
-
-    .output-buttons button.active-off {
-      background-color: #dc3545;
+    #log.error {
+      color: var(--accent-red);
     }
 
     #log-message {
@@ -365,16 +394,11 @@ cat << "EOF" > /home/radio/index.html
   }
 
   function getCookie(key) {
-      const name = key + "=";
-      const decodedCookie = decodeURIComponent(document.cookie);
-      const ca = decodedCookie.split(';');
-      for(let i = 0; i <ca.length; i++) {
-          let c = ca[i];
-          while (c.charAt(0) === ' ') {
-              c = c.substring(1);
-          }
-          if (c.indexOf(name) === 0) {
-              return c.substring(name.length, c.length);
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+          const [cookieName, ...valueParts] = cookie.trim().split('=');
+          if (cookieName === key) {
+              return valueParts.join('=');
           }
       }
       return "";
@@ -447,8 +471,10 @@ cat << "EOF" > /home/radio/index.html
 
       } catch (error) {
           // Systemfel: Timeout/Nätverksfel loggas
-          logElement.textContent = error.name === 'AbortError' ?
-          `Tidsgräns överskreds. CGI-anrop: $${fullUrl}` : `Fel: $${error.message}. CGI-anrop: $${fullUrl}`;
+          const errorMsg = error.name === 'AbortError' 
+              ? `Tidsgräns överskreds` 
+              : `Fel: $${error.message}`;
+          logElement.textContent = `$${errorMsg}. CGI-anrop: $${fullUrl}`;
           document.getElementById('log').className = 'error';
       } finally {
           clearTimeout(timeoutId);
@@ -633,6 +659,7 @@ cat << "EOF" > /home/radio/index.html
   function handleSearch() {
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
       const tbody = document.querySelector('#table-container table tbody');
+      if (!tbody) return;
       const rows = Array.from(tbody.children);
 
       let currentGroupHeader = null;
@@ -660,8 +687,8 @@ cat << "EOF" > /home/radio/index.html
 
               if (searchTerm && originalText.toLowerCase().includes(searchTerm)) {
                   rowMatches = true;
-                  const regex = new RegExp(`($${searchTerm})`, 'gi');
-      
+                  const escapedTerm = searchTerm.replace(/[.*+?^$${}()|[\]\\]/g, '\\$$&');
+                  const regex = new RegExp(`($${escapedTerm})`, 'gi');
                   cell.innerHTML = originalText.replace(regex, '<mark>$$1</mark>');
               }
           });
@@ -686,24 +713,23 @@ cat << "EOF" > /home/radio/index.html
 
   document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 200));
 
-  document.addEventListener('keydown', function(event) {
+  document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
           event.preventDefault();
           location.reload();
       }
   });
+
   const pre_url = "/radio.sh?";
   loadAndBuildTable('radio_channels.json', 'table-container');
 
-  document.querySelector('.output-buttons').addEventListener('click', handleOutputSwitch);
-
-  document.getElementById('outputOff').addEventListener('click', handleOffClick);
-  document.getElementById('playCustomUrlButton').addEventListener('click', handlePlayCustomUrl);
-  
-  document.getElementById('connectBluetoothButton').addEventListener('click', handleConnectBluetooth);
-  document.getElementById('disconnectBluetoothButton').addEventListener('click', handleDisconnectBluetooth);
-  document.getElementById('bluetoothVolumeUp').addEventListener('click', () => sendCgiRequest(null, null, 'bluetooth_volume_up'));
-  document.getElementById('bluetoothVolumeDown').addEventListener('click', () => sendCgiRequest(null, null, 'bluetooth_volume_down'));
+  document.querySelector('.output-buttons')?.addEventListener('click', handleOutputSwitch);
+  document.getElementById('outputOff')?.addEventListener('click', handleOffClick);
+  document.getElementById('playCustomUrlButton')?.addEventListener('click', handlePlayCustomUrl);
+  document.getElementById('connectBluetoothButton')?.addEventListener('click', handleConnectBluetooth);
+  document.getElementById('disconnectBluetoothButton')?.addEventListener('click', handleDisconnectBluetooth);
+  document.getElementById('bluetoothVolumeUp')?.addEventListener('click', () => sendCgiRequest(null, null, 'bluetooth_volume_up'));
+  document.getElementById('bluetoothVolumeDown')?.addEventListener('click', () => sendCgiRequest(null, null, 'bluetooth_volume_down'));
 </script>
 </body>
 </html>
