@@ -743,6 +743,37 @@ KGRYx7V5w88597FgedJ4Cab4Ud0MhGKBnPlzeQtdEsfJQ+bT3As2CGgoHOp/j0/EPCx8yP27Zpmh
 8ggFjJF8uyb7yuT+IYmO+tP8erbfsSapLu8f+47915v/AV0Nj+BcTwAA
 EOF
 
+cat << "EOF" > /etc/asound.conf
+pcm.bluealsa_raw {
+    type bluealsa
+    device "1C:AA:DA:C2:EA:23"
+    profile "a2dp"
+}
+
+pcm.bt_speaker {
+    type plug
+    slave {
+        pcm "bluealsa_raw"
+        format "S16_LE"
+        rate 48000
+        channels 2
+    }
+    hint {
+        show on
+        description "Bluetooth Speaker (Fixed 48kHz)"
+    }
+}
+
+pcm.!default {
+    type copy
+    slave.pcm "bt_speaker"
+}
+
+ctl.!default {
+    type bluealsa
+}
+EOF
+
 cat << "EOF" > /home/radio/radio.sh
 #!/bin/ash
 
