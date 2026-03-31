@@ -836,11 +836,11 @@ else
 
     if [ "$$OUTPUT_DEVICE" == "jack" ]; then
       pkill -KILL ffmpeg
-      nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default:CARD=Headphones > /dev/null 2>&1 &
+      nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa sysdefault:CARD=Headphones > /dev/null 2>&1 &
       echo "Startade $$CHANNEL_NAME på Jack." # Uppdaterad utskrift
     elif [ "$$OUTPUT_DEVICE" == "hdmi" ]; then
       pkill -KILL ffmpeg
-      nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default:CARD=b1 > /dev/null 2>&1 &
+      nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa sysdefault:CARD=b1 > /dev/null 2>&1 &
       echo "Startade $$CHANNEL_NAME på HDMI." # Uppdaterad utskrift
     elif [ "$$OUTPUT_DEVICE" == "bluetooth" ]; then
       pkill -KILL ffmpeg
