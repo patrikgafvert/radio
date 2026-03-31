@@ -31,7 +31,7 @@ rm -rf /etc/auto-setup-alpine
 apk update
 apk upgrade
 
-apk add wpa_supplicant lighttpd alsa-utils bluez-alsa ffmpeg terminus-font
+apk add wpa_supplicant lighttpd alsa-utils bluez-alsa bluez-alsa-utils ffmpeg terminus-font
 
 cat << "EOF" > /etc/wpa_supplicant/wpa_supplicant.conf
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
@@ -43,8 +43,8 @@ until [ -e "/var/run/wpa_supplicant/wlan0" ]; do :; done
 
 wpa_cli set country SE
 wpa_cli add_network 0
-wpa_cli set_network 0 ssid '"COMHEM_61a6ad-5G"'
-wpa_cli set_network 0 psk '"uzyvdzgt"'
+wpa_cli set_network 0 ssid '"South Beach Ocean Resort"'
+wpa_cli set_network 0 psk '"Henning!"'
 wpa_cli enable_network 0
 wpa_cli select_network 0
 wpa_cli save_config
@@ -294,8 +294,7 @@ cat << "EOF" > /home/radio/index.html
     }
 
     .output-buttons button,
-    #connectBluetoothButton, 
-    #disconnectBluetoothButton {
+    .bluetooth-btn {
       padding: 10px 15px;
       font-size: 1em;
       background-color: #0056b3;
@@ -307,8 +306,7 @@ cat << "EOF" > /home/radio/index.html
     }
 
     .output-buttons button:hover,
-    #connectBluetoothButton:hover, 
-    #disconnectBluetoothButton:hover {
+    .bluetooth-btn:hover {
       background-color: #007bff;
     }
 
@@ -351,8 +349,10 @@ cat << "EOF" > /home/radio/index.html
         <button id="outputBluetooth" aria-label="Välj ljudutgång till Bluetooth">Bluetooth</button>
         <button id="outputOff" aria-label="Stäng av ljud">Stäng av</button>
     </div>
-    <button id="connectBluetoothButton" aria-label="Anslut till Bluetooth">Anslut Blåtand</button>
-    <button id="disconnectBluetoothButton" aria-label="Koppla bort från Bluetooth">Koppla bort Blåtand</button>
+    <button class="bluetooth-btn" id="connectBluetoothButton" aria-label="Anslut till Bluetooth">Anslut Blåtand</button>
+    <button class="bluetooth-btn" id="disconnectBluetoothButton" aria-label="Koppla bort från Bluetooth">Koppla bort Blåtand</button>
+    <button class="bluetooth-btn" id="bluetoothVolumeUp" aria-label="Höj volymen på Bluetooth">Volym Up</button>
+    <button class="bluetooth-btn" id="bluetoothVolumeDown" aria-label="Sänk volymen på Bluetooth">Volym Ned</button>
 </div>
 
 <script>
@@ -702,6 +702,8 @@ cat << "EOF" > /home/radio/index.html
   
   document.getElementById('connectBluetoothButton').addEventListener('click', handleConnectBluetooth);
   document.getElementById('disconnectBluetoothButton').addEventListener('click', handleDisconnectBluetooth);
+  document.getElementById('bluetoothVolumeUp').addEventListener('click', () => sendCgiRequest(null, null, 'bluetooth_volume_up'));
+  document.getElementById('bluetoothVolumeDown').addEventListener('click', () => sendCgiRequest(null, null, 'bluetooth_volume_down'));
 </script>
 </body>
 </html>
@@ -743,6 +745,9 @@ EOF
 
 cat << "EOF" > /home/radio/radio.sh
 #!/bin/ash
+
+BT_MAC="1C:AA:DA:C2:EA:23"
+BT_SINK="/org/bluealsa/hci0/dev_$${BT_MAC//:/_}/a2dpsrc/sink"
 echo "HTTP/1.1 200 OK"
 echo "Content-Type: text/plain; charset=UTF-8"
 echo ""
@@ -786,7 +791,7 @@ done
 
 if [ ! -z "$$COMMAND" ]; then
     if [ "$$COMMAND" == "bluetooth_connect" ]; then
-        bluetoothctl connect 78:A1:68:A5:EB:CF > /dev/null 2>&1
+        bluetoothctl connect $$BT_MAC > /dev/null 2>&1
         if [ $$? -eq 0 ]; then
             echo "BT Anslutning lyckades."
         else
@@ -794,12 +799,20 @@ if [ ! -z "$$COMMAND" ]; then
         fi
         exit 0
     elif [ "$$COMMAND" == "bluetooth_disconnect" ]; then
-        bluetoothctl disconnect 78:A1:68:A5:EB:CF > /dev/null 2>&1
+        bluetoothctl disconnect $$BT_MAC > /dev/null 2>&1
         if [ $$? -eq 0 ]; then
             echo "BT Frånkoppling lyckades."
         else
             echo "Fel vid BT Frånkoppling."
         fi
+        exit 0
+    elif [ "$$COMMAND" == "bluetooth_volume_up" ]; then
+        bluealsa-cli volume "$$BT_SINK" $$(( $$(bluealsa-cli volume "$$BT_SINK" | awk '{print $$3}') + 10 )) > /dev/null 2>&1
+        echo "Volymen höjdes på Bluetooth."
+        exit 0
+    elif [ "$$COMMAND" == "bluetooth_volume_down" ]; then
+        bluealsa-cli volume "$$BT_SINK" $$(( $$(bluealsa-cli volume "$$BT_SINK" | awk '{print $$3}') - 10 )) > /dev/null 2>&1
+        echo "Volymen sänktes på Bluetooth."
         exit 0
     else
         echo "Okänt kommando: $$COMMAND"
@@ -823,15 +836,15 @@ else
 
     if [ "$$OUTPUT_DEVICE" == "jack" ]; then
       pkill -KILL ffmpeg
-      nohup ffmpeg -loglevel quiet -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default:CARD=Headphones > /dev/null 2>&1 &
+      nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default:CARD=Headphones > /dev/null 2>&1 &
       echo "Startade $$CHANNEL_NAME på Jack." # Uppdaterad utskrift
     elif [ "$$OUTPUT_DEVICE" == "hdmi" ]; then
       pkill -KILL ffmpeg
-      nohup ffmpeg -loglevel quiet -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default:CARD=b1 > /dev/null 2>&1 &
+      nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default:CARD=b1 > /dev/null 2>&1 &
       echo "Startade $$CHANNEL_NAME på HDMI." # Uppdaterad utskrift
     elif [ "$$OUTPUT_DEVICE" == "bluetooth" ]; then
       pkill -KILL ffmpeg
-      nohup ffmpeg -loglevel quiet -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa bluealsa > /dev/null 2>&1 &
+      nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default > /dev/null 2>&1 &
       echo "Startade $$CHANNEL_NAME på Bluetooth-strömning." # Uppdaterad utskrift
     fi
 fi
