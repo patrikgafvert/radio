@@ -84,6 +84,8 @@ rc-update add bluealsa
 lbu add /var/lib/alsa/asound.state
 lbu include /var/lib/bluetooth
 
+sed -i 's/\(a2dp-sink\)/\1 --a2dp-volume/' /etc/conf.d/bluealsa
+
 cat << "EOF" > /etc/lighttpd/lighttpd.conf
 server.document-root = "/home/radio"
 server.port = 80
