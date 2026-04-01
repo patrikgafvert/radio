@@ -431,7 +431,8 @@ cat << "EOF" > /home/radio/index.html
           btn.classList.remove('active', 'active-off');
       });
       if (currentOutput !== 'off') {
-          const btn = document.getElementById('output' + currentOutput.charAt(0).toUpperCase() + currentOutput.slice(1));
+          const btnId = currentOutput === 'hdmi' ? 'outputHDMI' : 'output' + currentOutput.charAt(0).toUpperCase() + currentOutput.slice(1);
+          const btn = document.getElementById(btnId);
           if (btn) btn.classList.add('active');
       } else {
           const offBtn = document.getElementById('outputOff');
@@ -484,7 +485,6 @@ cat << "EOF" > /home/radio/index.html
       return fullUrl;
   }
 
-  // NYTT: Hämtar channelName från datat-attribut och skickar det till CGI och sparar i cookie
   async function handleRowClick(event) {
       const clickedRow = event.currentTarget;
       const channelUrl = clickedRow.dataset.url;
@@ -494,29 +494,29 @@ cat << "EOF" > /home/radio/index.html
       clearSelectedRows();
       clickedRow.classList.add('selected-row');
 
-      await sendCgiRequest(channelUrl, currentOutput, null, channelName);
+      const outputToUse = currentOutput || 'off';
+      await sendCgiRequest(channelUrl, outputToUse, null, channelName);
       setCookie('selectedChannelUrl', channelUrl);
-      setCookie('selectedChannelName', channelName); // NYTT: Lagra kanalnamnet
+      setCookie('selectedChannelName', channelName);
       setCookie('lastCustomUrl', channelUrl);
       customUrlInput.value = channelUrl;
       updateButtonStyles();
   }
 
-  // NYTT: Skickar "Egen URL" som namn för anpassade URL:er
   async function handlePlayCustomUrl() {
       const customUrlInput = document.getElementById('customUrlInput');
       const customUrl = customUrlInput.value.trim();
 
       if (customUrl) {
           clearSelectedRows();
-          await sendCgiRequest(customUrl, currentOutput, null, "Egen URL");
+          const outputToUse = currentOutput || 'off';
+          await sendCgiRequest(customUrl, outputToUse, null, "Egen URL");
           setCookie('selectedChannelUrl', customUrl);
-          setCookie('selectedChannelName', "Egen URL"); // NYTT: Lagra namn för anpassad URL
+          setCookie('selectedChannelName', "Egen URL");
           setCookie('selectedOutput', currentOutput);
           setCookie('lastCustomUrl', customUrl);
           updateButtonStyles();
       } else {
-          // Tyst return utan loggning
           return; 
       }
   }
@@ -536,7 +536,9 @@ cat << "EOF" > /home/radio/index.html
   
   async function handleConnectBluetooth() {
       if (currentOutput !== 'bluetooth') {
-          // Tyst return utan loggning
+          const logElement = document.getElementById('log-message');
+          logElement.textContent = 'Välj Bluetooth som output först';
+          document.getElementById('log').className = 'error';
           return; 
       }
       await sendCgiRequest(null, null, 'bluetooth_connect');
@@ -546,7 +548,6 @@ cat << "EOF" > /home/radio/index.html
       await sendCgiRequest(null, null, 'bluetooth_disconnect');
   }
 
-  // NYTT: Hämtar och skickar med det senast valda kanalnamnet vid output-byte
   async function handleOutputSwitch(event) {
       const clickedButton = event.target;
       if (clickedButton.tagName !== 'BUTTON' || clickedButton.id === 'outputOff') return;
@@ -559,14 +560,13 @@ cat << "EOF" > /home/radio/index.html
           default: return;
       }
 
-      const currentChannelUrl = getCookie('selectedChannelUrl') || "";
-      const currentChannelName = getCookie('selectedChannelName') || ""; // NYTT: Hämta lagrat namn
-      
-      await sendCgiRequest(currentChannelUrl, newOutput, null, currentChannelName); // NYTT: Skicka med namn
-      
       currentOutput = newOutput;
       setCookie('selectedOutput', currentOutput);
       updateButtonStyles();
+
+      if (newOutput === 'bluetooth') {
+          await sendCgiRequest(null, null, 'bluetooth_connect');
+      }
   }
 
   async function loadAndBuildTable(jsonUrl, targetDivId) {
@@ -901,33 +901,33 @@ if [ ! -z "$$COMMAND" ]; then
     fi
 fi
 
+if [ "$$OUTPUT_DEVICE" == "off" ]; then
+    echo "Stänger av strömmen/radion."
+    pkill -KILL ffmpeg
+    exit 0
+fi
+
 if [ -z "$$OUTPUT_DEVICE" ]; then
     echo "Fel: 'output' parameter saknas eller är tom."
     exit 1
 fi
 
-if [ -z "$$CHANNEL_URL" ]; then
-    echo "Stänger av strömmen/radion."
-    pkill -KILL ffmpeg
-else
-    # Använd kanalnamnet om det finns för mer informativ utskrift
-    if [ -z "$$CHANNEL_NAME" ]; then
-        CHANNEL_NAME="Okänd kanal"
-    fi
+if [ -z "$$CHANNEL_NAME" ]; then
+    CHANNEL_NAME="Okänd kanal"
+fi
 
-    if [ "$$OUTPUT_DEVICE" == "jack" ]; then
-      pkill -KILL ffmpeg
-      nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa sysdefault:CARD=Headphones > /dev/null 2>&1 &
-      echo "Startade $$CHANNEL_NAME på Jack." # Uppdaterad utskrift
-    elif [ "$$OUTPUT_DEVICE" == "hdmi" ]; then
-      pkill -KILL ffmpeg
-      nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa sysdefault:CARD=b1 > /dev/null 2>&1 &
-      echo "Startade $$CHANNEL_NAME på HDMI." # Uppdaterad utskrift
-    elif [ "$$OUTPUT_DEVICE" == "bluetooth" ]; then
-      pkill -KILL ffmpeg
-      nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default > /dev/null 2>&1 &
-      echo "Startade $$CHANNEL_NAME på Bluetooth-strömning." # Uppdaterad utskrift
-    fi
+if [ "$$OUTPUT_DEVICE" == "jack" ]; then
+  pkill -KILL ffmpeg
+  nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa sysdefault:CARD=Headphones > /dev/null 2>&1 &
+  echo "Startade $$CHANNEL_NAME på Jack."
+elif [ "$$OUTPUT_DEVICE" == "hdmi" ]; then
+  pkill -KILL ffmpeg
+  nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa sysdefault:CARD=b1 > /dev/null 2>&1 &
+  echo "Startade $$CHANNEL_NAME på HDMI."
+elif [ "$$OUTPUT_DEVICE" == "bluetooth" ]; then
+  pkill -KILL ffmpeg
+  nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default > /dev/null 2>&1 &
+  echo "Startade $$CHANNEL_NAME på Bluetooth-strömning."
 fi
 
 exit 0
