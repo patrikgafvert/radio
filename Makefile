@@ -1069,3 +1069,6 @@ make_ovl:
 
 	cd $(ROOT_DIR) && tar --owner=0 --group=0 -czf $(ALPINE_DIR)localhost.apkovl.tar.gz -C ovl .
 	cd $(ALPINE_DIR) && echo -e "disable_audio_dither=1\ndisable_overscan=1\ndtparam=audio=on" > usercfg.txt
+
+distclean:
+	git clean -fdxx
