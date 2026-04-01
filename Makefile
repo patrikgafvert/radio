@@ -387,8 +387,7 @@ cat << "EOF" > /home/radio/index.html
 </div>
 
 <script>
-  function
-  setCookie(key, value, days = 7) {
+  function setCookie(key, value, days = 7) {
       const d = new Date();
       d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
       const expires = "expires=" + d.toUTCString();
@@ -400,31 +399,14 @@ cat << "EOF" > /home/radio/index.html
       for (const cookie of cookies) {
           const [cookieName, ...valueParts] = cookie.trim().split('=');
           if (cookieName === key) {
-              return valueParts.join('=');
+              return decodeURIComponent(valueParts.join('='));
           }
       }
       return "";
   }
 
-  function clearSelectedRows() {
-      const currentlySelected = document.querySelector('tr.selected-row');
-      if (currentlySelected) {
-          currentlySelected.classList.remove('selected-row');
-      }
-  }
-
-  function highlightSelectedRowFromStorage() {
-      const storedChannelUrl = getCookie('selectedChannelUrl');
-      if (!storedChannelUrl) return;
-      const clickableRows = document.querySelectorAll('tr[data-url]');
-      clickableRows.forEach(row => {
-          if (row.dataset.url === storedChannelUrl) {
-              row.classList.add('selected-row');
-          }
-      });
-  }
-
   let currentOutput = getCookie('selectedOutput') || 'jack';
+  let selectedChannelUrl = getCookie('selectedChannelUrl');
 
   function updateButtonStyles() {
       document.querySelectorAll('.output-buttons button').forEach(btn => {
@@ -440,20 +422,18 @@ cat << "EOF" > /home/radio/index.html
       }
   }
 
-  // NYTT: Lagt till channelName som valfri parameter
   async function sendCgiRequest(channelUrl, outputDevice, command = null, channelName = null) {
       const logElement = document.getElementById('log-message');
       let fullUrl = `$${pre_url}`;
 
       if (command) {
           fullUrl += `command=$${command}`;
-      } else if (channelUrl || outputDevice) { 
+      } else if (channelUrl || outputDevice) {
           fullUrl += `url=$${encodeURIComponent(channelUrl || '')}&output=$${outputDevice}`;
-          if (channelName) { // NYTT: Lägg till kanalnamn i anropet om det finns
+          if (channelName) {
               fullUrl += `&name=$${encodeURIComponent(channelName)}`;
           }
       } else {
-          // Förhindrar meningslöst CGI-anrop om ingen info skickas
           return;
       }
 
@@ -464,16 +444,13 @@ cat << "EOF" > /home/radio/index.html
 
       try {
           const response = await fetch(fullUrl, { signal: controller.signal });
-          // Systemfel: HTTP-statusfel loggas
           if (!response.ok) throw new Error(`HTTP-fel: $${response.status}`);
           
           const responseText = await response.text();
-          // ASH scriptets output visas
           logElement.textContent = responseText.trim() || 'Kommando skickat.';
           document.getElementById('log').className = 'success';
 
       } catch (error) {
-          // Systemfel: Timeout/Nätverksfel loggas
           const errorMsg = error.name === 'AbortError' 
               ? `Tidsgräns överskreds` 
               : `Fel: $${error.message}`;
@@ -489,17 +466,14 @@ cat << "EOF" > /home/radio/index.html
       const clickedRow = event.currentTarget;
       const channelUrl = clickedRow.dataset.url;
       const channelName = clickedRow.dataset.name;
-      const customUrlInput = document.getElementById('customUrlInput');
 
-      clearSelectedRows();
+      document.querySelectorAll('tr.selected-row').forEach(row => row.classList.remove('selected-row'));
       clickedRow.classList.add('selected-row');
 
       const outputToUse = currentOutput || 'off';
       await sendCgiRequest(channelUrl, outputToUse, null, channelName);
       setCookie('selectedChannelUrl', channelUrl);
-      setCookie('selectedChannelName', channelName);
-      setCookie('lastCustomUrl', channelUrl);
-      customUrlInput.value = channelUrl;
+      document.getElementById('customUrlInput').value = channelUrl;
       updateButtonStyles();
   }
 
@@ -508,39 +482,25 @@ cat << "EOF" > /home/radio/index.html
       const customUrl = customUrlInput.value.trim();
 
       if (customUrl) {
-          clearSelectedRows();
+          document.querySelectorAll('tr.selected-row').forEach(row => row.classList.remove('selected-row'));
           const outputToUse = currentOutput || 'off';
           await sendCgiRequest(customUrl, outputToUse, null, "Egen URL");
           setCookie('selectedChannelUrl', customUrl);
-          setCookie('selectedChannelName', "Egen URL");
-          setCookie('selectedOutput', currentOutput);
-          setCookie('lastCustomUrl', customUrl);
           updateButtonStyles();
-      } else {
-          return; 
       }
   }
 
-  // NYTT: Rensar även selectedChannelName cookie
   async function handleOffClick() {
-      clearSelectedRows();
-      await sendCgiRequest("", currentOutput); 
+      document.querySelectorAll('tr.selected-row').forEach(row => row.classList.remove('selected-row'));
+      await sendCgiRequest("", currentOutput);
       document.getElementById('customUrlInput').value = "";
       setCookie('selectedChannelUrl', "");
-      setCookie('selectedChannelName', ""); // NYTT: Rensa lagrat namn
-      setCookie('lastCustomUrl', "");
       currentOutput = 'off';
       setCookie('selectedOutput', currentOutput);
       updateButtonStyles();
   }
   
   async function handleConnectBluetooth() {
-      if (currentOutput !== 'bluetooth') {
-          const logElement = document.getElementById('log-message');
-          logElement.textContent = 'Välj Bluetooth som output först';
-          document.getElementById('log').className = 'error';
-          return; 
-      }
       await sendCgiRequest(null, null, 'bluetooth_connect');
   }
 
@@ -589,7 +549,6 @@ cat << "EOF" > /home/radio/index.html
               th.textContent = key === 'logo_url' ? '' :
                   key === 'name' ? 'Kanalnamn' :
                   key === 'genre' ? 'Genre' : 'Beskrivning';
-         
               headerRow.appendChild(th);
           });
           thead.appendChild(headerRow);
@@ -600,7 +559,6 @@ cat << "EOF" > /home/radio/index.html
                   const groupHeaderRow = document.createElement('tr');
                   groupHeaderRow.classList.add('group-header');
                   const groupHeaderCell = document.createElement('td');
-              
                   groupHeaderCell.textContent = item.group;
                   groupHeaderCell.colSpan = columns.length;
                   groupHeaderRow.appendChild(groupHeaderCell);
@@ -608,16 +566,14 @@ cat << "EOF" > /home/radio/index.html
                   currentGroup = item.group;
               }
 
-    
               const row = document.createElement('tr');
               row.classList.add('clickable-row');
               row.dataset.url = item.url;
-              row.dataset.name = item.name; // NYTT: Spara kanalnamn i datat-attributet
+              row.dataset.name = item.name;
               row.addEventListener('click', handleRowClick);
 
               columns.forEach(key => {
                   const td = document.createElement('td');
-     
                   if (key === 'logo_url') {
                       const img = document.createElement('img');
                       img.src = item[key] || '';
@@ -625,8 +581,7 @@ cat << "EOF" > /home/radio/index.html
                       img.classList.add('logo');
                       td.appendChild(img);
                   } else {
-                      td.textContent = item[key] ||
-                      '';
+                      td.textContent = item[key] || '';
                   }
                   row.appendChild(td);
               });
@@ -637,13 +592,16 @@ cat << "EOF" > /home/radio/index.html
           const container = document.getElementById(targetDivId);
           container.innerHTML = '';
           container.appendChild(table);
-          highlightSelectedRowFromStorage();
-          updateButtonStyles();
 
-          const lastCustomUrl = getCookie('lastCustomUrl');
-          if (lastCustomUrl) {
-              document.getElementById('customUrlInput').value = lastCustomUrl;
+          if (selectedChannelUrl) {
+              document.querySelectorAll('tr[data-url]').forEach(row => {
+                  if (row.dataset.url === selectedChannelUrl) {
+                      row.classList.add('selected-row');
+                  }
+              });
+              document.getElementById('customUrlInput').value = selectedChannelUrl;
           }
+          updateButtonStyles();
 
       } catch (error) {
           document.getElementById(targetDivId).innerText = `Fel vid inläsning: $${error.message}`;
@@ -672,7 +630,6 @@ cat << "EOF" > /home/radio/index.html
                   currentGroupHeader.style.display = 'none';
               } else if (currentGroupHeader) {
                   currentGroupHeader.style.display = '';
-          
               }
               currentGroupHeader = row;
               groupHasVisibleRows = false;
@@ -683,7 +640,6 @@ cat << "EOF" > /home/radio/index.html
           let rowMatches = false;
 
           cells.forEach(cell => {
-  
               const originalText = cell.textContent || '';
               cell.innerHTML = originalText;
 
