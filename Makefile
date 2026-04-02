@@ -382,7 +382,7 @@ cat << "EOF" > /home/radio/index.html
     </div>
     <button class="bluetooth-btn" id="connectBluetoothButton" aria-label="Anslut till Bluetooth">Anslut Blåtand</button>
     <button class="bluetooth-btn" id="disconnectBluetoothButton" aria-label="Koppla bort från Bluetooth">Koppla bort Blåtand</button>
-    <button class="bluetooth-btn" id="bluetoothVolumeUp" aria-label="Höj volymen på Bluetooth">Volym Up</button>
+    <button class="bluetooth-btn" id="bluetoothVolumeUp" aria-label="Höj volymen på Bluetooth">Volym Upp</button>
     <button class="bluetooth-btn" id="bluetoothVolumeDown" aria-label="Sänk volymen på Bluetooth">Volym Ned</button>
 </div>
 
