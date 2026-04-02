@@ -844,12 +844,12 @@ if [ ! -z "$$COMMAND" ]; then
         fi
         exit 0
     elif [ "$$COMMAND" == "bluetooth_volume_up" ]; then
-        bluealsa-cli volume "$$BT_SINK" $$(( $$(bluealsa-cli volume "$$BT_SINK" | awk '{print $$3}') + 10 )) > /dev/null 2>&1
-        echo "Volymen höjdes på Bluetooth."
+        bluealsa-cli volume "$$BT_SINK" $$(( vol=$$(bluealsa-cli volume "$$BT_SINK" | awk '{print $$3}'), vol + 10 ))
+        echo "Volymen höjdes på Bluetooth.($$(($$vol+10)))"
         exit 0
     elif [ "$$COMMAND" == "bluetooth_volume_down" ]; then
-        bluealsa-cli volume "$$BT_SINK" $$(( $$(bluealsa-cli volume "$$BT_SINK" | awk '{print $$3}') - 10 )) > /dev/null 2>&1
-        echo "Volymen sänktes på Bluetooth."
+        bluealsa-cli volume "$$BT_SINK" $$(( vol=$$(bluealsa-cli volume "$$BT_SINK" | awk '{print $$3}'), vol - 10 ))
+        echo "Volymen sänktes på Bluetooth.($$(($$vol-10)))"
         exit 0
     else
         echo "Okänt kommando: $$COMMAND"
