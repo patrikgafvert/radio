@@ -1027,4 +1027,4 @@ make_ovl:
 	cd $(ALPINE_DIR) && echo -e "disable_audio_dither=1\ndisable_overscan=1\ndtparam=audio=on" > usercfg.txt
 
 distclean:
-	git clean -fdxx
+	git clean -fdx
