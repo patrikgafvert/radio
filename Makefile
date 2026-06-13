@@ -326,6 +326,11 @@ cat << "EOF" > /home/radio/index.html
       display: block;
     }
 
+    #log-message {
+      user-select: all;
+      -webkit-user-select: all;
+    }
+
     #log {
       position: fixed;
       bottom: 0;
@@ -459,7 +464,7 @@ cat << "EOF" > /home/radio/index.html
       } finally {
           clearTimeout(timeoutId);
       }
-      return fullUrl;
+      return window.location.origin + fullUrl;
   }
 
   async function handleRowClick(event) {
@@ -471,9 +476,10 @@ cat << "EOF" > /home/radio/index.html
       clickedRow.classList.add('selected-row');
 
       const outputToUse = currentOutput || 'off';
-      await sendCgiRequest(channelUrl, outputToUse, null, channelName);
+      const apiUrl = await sendCgiRequest(channelUrl, outputToUse, null, channelName);
       setCookie('selectedChannelUrl', channelUrl);
       document.getElementById('customUrlInput').value = channelUrl;
+      if (apiUrl) document.getElementById('log-message').textContent = decodeURIComponent(apiUrl);
       updateButtonStyles();
   }
 
@@ -484,8 +490,9 @@ cat << "EOF" > /home/radio/index.html
       if (customUrl) {
           document.querySelectorAll('tr.selected-row').forEach(row => row.classList.remove('selected-row'));
           const outputToUse = currentOutput || 'off';
-          await sendCgiRequest(customUrl, outputToUse, null, "Egen URL");
+          const apiUrl = await sendCgiRequest(customUrl, outputToUse, null, "Egen URL");
           setCookie('selectedChannelUrl', customUrl);
+          if (apiUrl) document.getElementById('log-message').textContent = decodeURIComponent(apiUrl);
           updateButtonStyles();
       }
   }
@@ -783,7 +790,7 @@ EOF
 cat << "EOF" > /home/radio/radio.sh
 #!/bin/ash
 
-BT_MAC="1C:AA:DA:C2:EA:23"
+BT_MAC="78:A1:68:A5:EB:CF"
 BT_SINK="/org/bluealsa/hci0/dev_$${BT_MAC//:/_}/a2dpsrc/sink"
 echo "HTTP/1.1 200 OK"
 echo "Content-Type: text/plain; charset=UTF-8"
