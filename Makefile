@@ -2,8 +2,8 @@
 SHELL:=$(shell which bash)
 ROOT_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 DOWNLOADCMD=curl -s -O -L -k
-ALPINE_VER=3.23
-ALPINE_FILE=alpine-rpi-$(ALPINE_VER).3-aarch64.tar.gz
+ALPINE_VER=3.24
+ALPINE_FILE=alpine-rpi-$(ALPINE_VER).0-aarch64.tar.gz
 ALPINE_URL=https://dl-cdn.alpinelinux.org/alpine/v$(ALPINE_VER)/releases/aarch64/$(ALPINE_FILE)
 ALPINE_DIR=$(ROOT_DIR)alpine-$(ALPINE_VER)/
 TAR_DIR=$(ROOT_DIR)
