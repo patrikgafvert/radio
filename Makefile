@@ -793,12 +793,23 @@ cat << "EOF" > /home/radio/radio.sh
 BT_MAC="78:A1:68:A5:EB:CF"
 BT_SINK="/org/bluealsa/hci0/dev_$${BT_MAC//:/_}/a2dpsrc/sink"
 echo "HTTP/1.1 200 OK"
-echo "Content-Type: text/plain; charset=UTF-8"
+echo "Content-Type: text/html; charset=UTF-8"
 echo ""
 
 urldecode() {
     local url_encoded="$${1//+/ }"
     printf '%b' "$${url_encoded//%/\\x}"
+}
+
+back_html() {
+    echo "<html>"
+    echo "<head>"
+    echo "<script>setTimeout(function(){ if (window.opener) { window.close(); } else { window.history.back(); } }, 2000);</script>"
+    echo "</head>"
+    echo "<body style='font-family:sans-serif;text-align:center;margin-top:20%'>"
+    echo "<h2>$$1</h2>"
+    echo "</body>"
+    echo "</html>"
 }
 
 if [ -z "$$QUERY_STRING" ]; then
@@ -882,15 +893,15 @@ fi
 if [ "$$OUTPUT_DEVICE" == "jack" ]; then
   pkill -KILL ffmpeg
   nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa sysdefault:CARD=Headphones > /dev/null 2>&1 &
-  echo "Startade $$CHANNEL_NAME på Jack."
+  back_html "Startar $$CHANNEL_NAME på Jack..."
 elif [ "$$OUTPUT_DEVICE" == "hdmi" ]; then
   pkill -KILL ffmpeg
   nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa sysdefault:CARD=b1 > /dev/null 2>&1 &
-  echo "Startade $$CHANNEL_NAME på HDMI."
+  back_html "Startar $$CHANNEL_NAME på HDMI..."
 elif [ "$$OUTPUT_DEVICE" == "bluetooth" ]; then
   pkill -KILL ffmpeg
   nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default > /dev/null 2>&1 &
-  echo "Startade $$CHANNEL_NAME på Bluetooth-strömning."
+  back_html "Startar $$CHANNEL_NAME på Bluetooth-strömning..."
 fi
 
 exit 0
