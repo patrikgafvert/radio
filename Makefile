@@ -695,6 +695,50 @@ cat << "EOF" > /home/radio/index.html
   document.getElementById('disconnectBluetoothButton')?.addEventListener('click', handleDisconnectBluetooth);
   document.getElementById('bluetoothVolumeUp')?.addEventListener('click', () => sendCgiRequest(null, null, 'bluetooth_volume_up'));
   document.getElementById('bluetoothVolumeDown')?.addEventListener('click', () => sendCgiRequest(null, null, 'bluetooth_volume_down'));
+
+  function encodeQueryParams(url) {
+      const qIndex = url.indexOf('?');
+      if (qIndex === -1) return url;
+      const base = url.slice(0, qIndex);
+      const params = url.slice(qIndex + 1).split('&').map(param => {
+          const eqIndex = param.indexOf('=');
+          if (eqIndex === -1) return encodeURIComponent(param);
+          return `$${param.slice(0, eqIndex)}=$${encodeURIComponent(param.slice(eqIndex + 1))}`;
+      });
+      return `$${base}?$${params.join('&')}`;
+  }
+
+  document.getElementById('log-message').addEventListener('click', async function () {
+      const text = encodeQueryParams(this.textContent.trim());
+      if (!text) return;
+      try {
+          if (navigator.clipboard && window.isSecureContext) {
+              await navigator.clipboard.writeText(text);
+          } else {
+              const textarea = document.createElement('textarea');
+              textarea.value = text;
+              textarea.style.position = 'fixed';
+              textarea.style.opacity = '0';
+              document.body.appendChild(textarea);
+              textarea.select();
+              document.execCommand('copy');
+              document.body.removeChild(textarea);
+          }
+          const log = document.getElementById('log');
+          const prevClass = log.className;
+          const prevText = this.textContent;
+          log.className = 'success';
+          this.textContent = 'Kopierat till klippbordet!';
+          setTimeout(() => {
+              this.textContent = prevText;
+              log.className = prevClass;
+          }, 1500);
+      } catch (error) {
+          const log = document.getElementById('log');
+          log.className = 'error';
+          this.textContent = `Kopiering misslyckades: $${error.message}`;
+      }
+  });
 </script>
 </body>
 </html>
