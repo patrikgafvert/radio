@@ -944,7 +944,7 @@ elif [ "$$OUTPUT_DEVICE" == "hdmi" ]; then
   back_html "Startar $$CHANNEL_NAME på HDMI..."
 elif [ "$$OUTPUT_DEVICE" == "bluetooth" ]; then
   pkill -KILL ffmpeg
-  nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa default > /dev/null 2>&1 &
+  nohup ffmpeg -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -i "$$CHANNEL_URL" -f alsa bt_speaker > /dev/null 2>&1 &
   back_html "Startar $$CHANNEL_NAME på Bluetooth-strömning..."
 fi
 
