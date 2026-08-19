@@ -33,6 +33,14 @@ apk upgrade
 
 apk add wpa_supplicant lighttpd alsa-utils bluez-alsa bluez-alsa-utils ffmpeg terminus-font
 
+mount -o remount,rw /media/mmcblk0p1
+mkdir /boot
+mount --bind /media/mmcblk0p1 /boot
+apk add raspberrypi-bootloader-cutdown
+umount /boot
+rmdir /boot
+sed -i '/^raspberrypi-bootloader/d' /etc/apk/world
+
 cat << "EOF" > /etc/wpa_supplicant/wpa_supplicant.conf
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
