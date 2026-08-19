@@ -1094,7 +1094,7 @@ make_ovl:
 	chmod 755 $(ROOT_DIR)ovl/etc/local.d/auto-setup-alpine.start
 
 	cd $(ROOT_DIR) && tar --owner=0 --group=0 -czf $(ALPINE_DIR)localhost.apkovl.tar.gz -C ovl .
-	cd $(ALPINE_DIR) && echo -e "disable_audio_dither=1\ndisable_overscan=1\ndtparam=audio=on" > usercfg.txt
+	cd $(ALPINE_DIR) && echo -e "disable_audio_dither=1\ndisable_overscan=1\ndtparam=audio=on\ngpu_mem=16" > usercfg.txt
 
 distclean:
 	git clean -ffdx
