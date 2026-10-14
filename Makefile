@@ -1036,16 +1036,19 @@ HOSTNAMEOPTS="radio"
 DEVDOPTS="mdev"
 INTERFACESOPTS="auto lo
 iface lo inet loopback
+iface lo inet6 loopback
 
 auto eth0
-allow-hotplug eth0
 iface eth0 inet dhcp
+iface eth0 inet6 manual
+	up ip link set $IFACE up
+	down ip link set $IFACE down
 
 auto wlan0
-allow-hotplug wlan0
 iface wlan0 inet dhcp
-
-hostname radio
+iface wlan0 inet6 manual
+	up ip link set $IFACE up
+	down ip link set $IFACE down
 "
 TIMEZONEOPTS="Europe/Stockholm"
 PROXYOPTS="none"
