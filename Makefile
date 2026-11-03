@@ -2,9 +2,16 @@
 SHELL:=$(shell which bash)
 ROOT_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 DOWNLOADCMD=curl -s -O -L -k
-ALPINE_VER=3.24
-ALPINE_FILE=alpine-rpi-$(ALPINE_VER).1-aarch64.tar.gz
-ALPINE_URL=https://dl-cdn.alpinelinux.org/alpine/v$(ALPINE_VER)/releases/aarch64/$(ALPINE_FILE)
+ALPINE_ARCH=aarch64
+ALPINE_RELEASES_URL=https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/$(ALPINE_ARCH)
+ALPINE_YAML=$(ROOT_DIR)latest-releases.yaml
+
+# Hämta YAML först, för att sedan populera ALPINE_FILE/ALPINE_VER/ALPINE_URL.
+# Enligt samma princip som update.sh: hitta senaste alpine-rpi-*.tar.gz automatiskt.
+$(shell mkdir -p $(ROOT_DIR); curl -fsSL -k "$(ALPINE_RELEASES_URL)/latest-releases.yaml" -o "$(ALPINE_YAML).tmp" && mv "$(ALPINE_YAML).tmp" "$(ALPINE_YAML)" || true)
+ALPINE_FILE:=$(shell grep 'alpine-rpi-' "$(ALPINE_YAML)" 2>/dev/null | grep '\.tar\.gz' | head -n 1 | sed 's/.*file: *//' | tr -d '[:space:]' | tr -d '"' | tr -d "'")
+ALPINE_VER:=$(shell echo "$(ALPINE_FILE)" | sed -E 's/^alpine-rpi-([0-9]+\.[0-9]+)\..*/\1/')
+ALPINE_URL=$(ALPINE_RELEASES_URL)/$(ALPINE_FILE)
 ALPINE_DIR=$(ROOT_DIR)alpine-$(ALPINE_VER)/
 TAR_DIR=$(ROOT_DIR)
 DISCS:=$(shell lsblk -O -J | jq -r '[.blockdevices[] | select(.type=="disk" and .tran=="usb")] | to_entries[] | [.key+1,.value.path,.value.vendor,.value.model,.value.size] | @csv ')
@@ -1041,14 +1048,14 @@ iface lo inet6 loopback
 auto eth0
 iface eth0 inet dhcp
 iface eth0 inet6 manual
-	up ip link set $IFACE up
-	down ip link set $IFACE down
+	up ip link set $$IFACE up
+	down ip link set $$IFACE down
 
 auto wlan0
 iface wlan0 inet dhcp
 iface wlan0 inet6 manual
-	up ip link set $IFACE up
-	down ip link set $IFACE down
+	up ip link set $$IFACE up
+	down ip link set $$IFACE down
 "
 TIMEZONEOPTS="Europe/Stockholm"
 PROXYOPTS="none"
@@ -1069,6 +1076,8 @@ export REPO ANSWERS AUTOSCRIPT
 all:	fetch-alpine make_ovl make_img
 
 fetch-alpine:
+	@if [ -z "$(ALPINE_FILE)" ]; then echo "Kunde inte hitta alpine-filnamn i $(ALPINE_YAML)" >&2; exit 1; fi
+	@echo "==> Alpine $(ALPINE_VER) ($(ALPINE_FILE))"
 	mkdir -p $(ALPINE_DIR)
 	if [ ! -f "$(ALPINE_FILE)" ]; then $(DOWNLOADCMD) $(ALPINE_URL); fi
 	cd $(ALPINE_DIR) && tar -xf ../$(ALPINE_FILE)
