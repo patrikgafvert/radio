@@ -90,6 +90,9 @@ rmdir /boot 2>/dev/null || true
 # Låt inte paketet ligga kvar i world (skulle installeras om vid varje uppstart).
 sed -i '/^raspberrypi-bootloader/d' /etc/apk/world
 
+apk update
+apk upgrade
+
 lbu ci -dv
 sync
 
